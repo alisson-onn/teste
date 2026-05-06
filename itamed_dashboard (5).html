@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Itamed — Painel de Gestão</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ivory:   #faf9f6;
+  --white:   #ffffff;
+  --stone:   #f4f3ef;
+  --border:  #e8e6e0;
+  --border2: #ccc9c0;
+  --text:    #1a1916;
+  --text2:   #6b6860;
+  --text3:   #a8a49c;
+  --cr:      #c0392b;  /* crítico vermelho */
+  --cr-t:    rgba(192,57,43,.10);
+  --al:      #b45309;  /* alerta âmbar */
+  --al-t:    rgba(180,83,9,.10);
+  --ok:      #15803d;  /* normal verde */
+  --ok-t:    rgba(21,128,61,.10);
+  --blue:    #1e40af;
+  --r:       10px;
+  --r-sm:    7px;
+  --font:    'Instrument Sans', system-ui, sans-serif;
+}
+
+body { font-family: var(--font); background: var(--ivory); color: var(--text); min-height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed; top: 0; left: 0;
+  width: 208px; height: 100vh;
+  background: var(--white); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; z-index: 100;
+}
+.sidebar-logo { padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
+.logo-name { font-size: 16px; font-weight: 600; letter-spacing: -.3px; }
+.logo-sub  { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.nav-sec   { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; padding: 16px 20px 5px; }
+.nav-item  {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 20px; font-size: 13px; color: var(--text2);
+  cursor: pointer; border-left: 2px solid transparent; transition: all .12s;
+}
+.nav-item:hover { color: var(--text); background: var(--stone); }
+.nav-item.active { color: var(--text); font-weight: 500; border-left-color: var(--text); background: var(--stone); }
+.nd { width: 5px; height: 5px; border-radius: 50%; background: var(--border2); flex-shrink: 0; transition: background .12s; }
+.nav-item.active .nd, .nav-item:hover .nd { background: var(--text); }
+.sidebar-foot {
+  margin-top: auto; padding: 14px 20px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--stone); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: var(--text2); flex-shrink: 0;
+}
+.pname { font-size: 13px; font-weight: 500; }
+.prole { font-size: 11px; color: var(--text3); }
+
+/* ── MAIN ── */
+.main { margin-left: 208px; padding: 30px 34px 44px; }
+
+/* ── HEADER ── */
+.hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 20px; margin-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.htitle { font-size: 22px; font-weight: 600; letter-spacing: -.4px; }
+.hsub   { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+/* ── KPI ── */
+.kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 11px; margin-bottom: 22px; }
+.kpi  {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px 18px;
+  transition: box-shadow .15s;
+}
+.kpi:hover { box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+.kl { font-size: 10px; text-transform: uppercase; letter-spacing: .9px; color: var(--text3); margin-bottom: 7px; }
+.kv { font-size: 29px; font-weight: 600; letter-spacing: -1px; line-height: 1; }
+.kv.r { color: var(--cr); } .kv.g { color: var(--ok); }
+.kv.a { color: var(--al); } .kv.b { color: var(--blue); }
+.ks { font-size: 12px; color: var(--text2); margin-top: 5px; }
+.kt { display: inline-block; margin-top: 6px; font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 4px; }
+.kt.r { background: #fef2f2; color: var(--cr); }
+.kt.g { background: #f0fdf4; color: var(--ok); }
+
+/* ── LAYOUT ── */
+.row   { display: grid; gap: 16px; margin-bottom: 16px; }
+.row-a { grid-template-columns: 2.1fr 1fr; }
+.row-b { grid-template-columns: 1fr 1fr; }
+
+/* ── PANEL ── */
+.panel { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 20px 22px; }
+.ph { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.pt { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: var(--text2); }
+.pm { font-size: 11px; color: var(--text3); }
+
+/* ── GAUGES ELEGANTES ── */
+.gg { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+
+.gc {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px 12px 16px;
+  display: flex; flex-direction: column; align-items: center;
+  transition: box-shadow .18s, border-color .18s;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.gc::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: var(--r) var(--r) 0 0;
+}
+.gc.crit::before  { background: var(--cr); }
+.gc.alert::before { background: var(--al); }
+.gc.ok::before    { background: var(--ok); }
+
+.gc:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); border-color: var(--border2); }
+
+.gw { position: relative; width: 100px; height: 100px; }
+.gw canvas { width: 100px !important; height: 100px !important; }
+.gctr {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1px;
+}
+.gpct {
+  font-size: 19px; font-weight: 600;
+  letter-spacing: -.5px; line-height: 1;
+}
+.gleitos {
+  font-size: 10px; color: var(--text3);
+  line-height: 1;
+}
+.gname {
+  font-size: 11px; font-weight: 500; color: var(--text);
+  text-align: center; margin-top: 10px; line-height: 1.35;
+}
+.glivres {
+  margin-top: 6px;
+  font-size: 10px;
+  display: flex; align-items: center; gap: 4px;
+}
+.glivres-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+/* ── STATUS TABLE ── */
+.sr { display: flex; align-items: center; gap: 9px; padding: 8px 0; border-bottom: 1px solid var(--stone); font-size: 12px; }
+.sr:last-child { border: none; padding-bottom: 0; }
+.sdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.sname { flex: 1; color: var(--text); }
+.str { width: 68px; background: var(--stone); border-radius: 3px; height: 4px; overflow: hidden; flex-shrink: 0; }
+.sf { height: 100%; border-radius: 3px; }
+.spct { font-size: 11px; font-weight: 600; min-width: 38px; text-align: right; }
+.scnt { font-size: 10px; color: var(--text3); min-width: 42px; text-align: right; }
+
+/* ── CHART ── */
+.cb { position: relative; width: 100%; height: 185px; }
+.cnote { font-size: 11px; color: var(--text3); margin-top: 7px; text-align: center; }
+
+/* ── CONVENIO ── */
+.cvb { position: relative; width: 100%; height: 165px; margin-bottom: 14px; }
+.cvg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cvc { background: var(--ivory); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px; text-align: center; }
+.cvl { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--text3); margin-bottom: 6px; }
+.cvv { font-size: 22px; font-weight: 600; letter-spacing: -1px; }
+.cvs { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* ── FOOTER ── */
+.foot { font-size: 11px; color: var(--text3); text-align: center; padding: 20px 0 0; }
+
+/* ── ANIM ── */
+@keyframes up { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+.kpi, .panel { animation: up .32s ease both; }
+.kpi:nth-child(1){animation-delay:.04s} .kpi:nth-child(2){animation-delay:.08s}
+.kpi:nth-child(3){animation-delay:.12s} .kpi:nth-child(4){animation-delay:.16s}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-name">Itamed</div>
+    <div class="logo-sub">Painel de Gestão</div>
+  </div>
+  <div class="nav-sec">Visão Geral</div>
+  <div class="nav-item active"><div class="nd"></div>Leitos</div>
+  <div class="nav-item"><div class="nd"></div>Atendimentos</div>
+  <div class="nav-item"><div class="nd"></div>Indicadores</div>
+  <div class="nav-sec">Unidades</div>
+  <div class="nav-item"><div class="nd"></div>UTIs</div>
+  <div class="nav-item"><div class="nd"></div>Blocos</div>
+  <div class="nav-item"><div class="nd"></div>Neonatal</div>
+  <div class="nav-sec">Relatórios</div>
+  <div class="nav-item"><div class="nd"></div>Histórico</div>
+  <div class="nav-item"><div class="nd"></div>Exportar</div>
+  <div class="sidebar-foot">
+    <div class="avatar">D</div>
+    <div><div class="pname">Diretor</div><div class="prole">Gestão Hospitalar</div></div>
+  </div>
+</nav>
+
+<main class="main">
+
+  <div class="hdr">
+    <div>
+      <div class="htitle">Ocupação de Leitos</div>
+      <div class="hsub" id="dt">—</div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="kl">Ocupados</div><div class="kv r">90,97%</div><div class="ks">131 de 144 leitos</div><div class="kt r">▲ acima da média</div></div>
+    <div class="kpi"><div class="kl">Livres</div><div class="kv g">11</div><div class="ks">leitos disponíveis agora</div><div class="kt g">7,6% do total</div></div>
+    <div class="kpi"><div class="kl">Reservados</div><div class="kv a">5</div><div class="ks">aguardando paciente</div></div>
+    <div class="kpi"><div class="kl">Altas hoje</div><div class="kv b">3</div><div class="ks">previstas para liberar</div></div>
+  </div>
+
+  <div class="row row-a">
+    <div class="panel">
+      <div class="ph"><div class="pt">Ocupação por setor</div><div class="pm">% de ocupação atual</div></div>
+      <div class="gg" id="gg"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div class="pt">Histórico mensal</div><div class="pm">abr/25 – hoje</div></div>
+      <div class="cb"><canvas id="ch" role="img" aria-label="Histórico de ocupação mensal"></canvas></div>
+      <div class="cnote">pontilhada = média histórica 64,3%</div>
+    </div>
+  </div>
+
+  <div class="row row-b">
+    <div class="panel">
+      <div class="ph"><div class="pt">Detalhe por setor</div><div class="pm">ocupado / total</div></div>
+      <div id="st"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div class="pt">Convênio</div><div class="pm">distribuição dos leitos ocupados</div></div>
+      <div class="cvb"><canvas id="cc" role="img" aria-label="Ocupação por convênio"></canvas></div>
+      <div class="cvg">
+        <div class="cvc">
+          <div class="cvl">SUS</div>
+          <div class="cvv" style="color:#1e40af">73%</div>
+          <div class="cvs">96 leitos</div>
+        </div>
+        <div class="cvc">
+          <div class="cvl">Outros</div>
+          <div class="cvv" style="color:#374151">27%</div>
+          <div class="cvs">35 leitos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">Itamed Hospital · Painel de Gestão · piloto v0.1</div>
+</main>
+
+<script>
+function tick() {
+  const n = new Date();
+  document.getElementById('dt').textContent =
+    n.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}) +
+    ' · ' + n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+tick(); setInterval(tick, 60000);
+
+const dados = [
+  {n:'UTI Geral',       v:100.00, o:10, l:10, li:0},
+  {n:'Bloco 02',        v:96.30,  o:26, l:27, li:1},
+  {n:'Bloco 06',        v:93.33,  o:28, l:30, li:2},
+  {n:'Bloco 07',        v:93.33,  o:28, l:30, li:1},
+  {n:'UCI Interm.',     v:90.00,  o:9,  l:10, li:0},
+  {n:'UTI Pediátrica',  v:88.89,  o:8,  l:9,  li:1},
+  {n:'UTI Neo Natal',   v:85.71,  o:12, l:14, li:2},
+  {n:'UTI Coronariana', v:80.00,  o:8,  l:10, li:2},
+  {n:'UCINCa Canguru',  v:50.00,  o:2,  l:4,  li:2},
+];
+
+function cor(v) {
+  if (v >= 90) return { cls:'crit',  m:'#c0392b', t:'rgba(192,57,43,.10)', x:'#c0392b', dot:'#c0392b' };
+  if (v >= 70) return { cls:'alert', m:'#b45309', t:'rgba(180,83,9,.10)',  x:'#b45309', dot:'#b45309' };
+  return             { cls:'ok',    m:'#15803d', t:'rgba(21,128,61,.10)', x:'#15803d', dot:'#15803d' };
+}
+
+// Gauges
+const gg = document.getElementById('gg');
+dados.forEach((s, i) => {
+  const c = cor(s.v);
+  const livresText = s.li === 0
+    ? `<span style="color:#c0392b">sem livres</span>`
+    : `<span style="color:var(--text2)">${s.li} livre${s.li>1?'s':''}</span>`;
+
+  const div = document.createElement('div');
+  div.className = `gc ${c.cls}`;
+  div.innerHTML = `
+    <div class="gw">
+      <canvas id="g${i}" width="100" height="100"></canvas>
+      <div class="gctr">
+        <span class="gpct" style="color:${c.x}">${s.v.toFixed(1)}%</span>
+        <span class="gleitos">${s.o}/${s.l}</span>
+      </div>
+    </div>
+    <div class="gname">${s.n}</div>
+    <div class="glivres">
+      <span class="glivres-dot" style="background:${s.li===0?'#c0392b':'#15803d'}"></span>
+      ${livresText}
+    </div>`;
+  gg.appendChild(div);
+
+  setTimeout(() => {
+    new Chart(document.getElementById('g'+i), {
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [s.v, 100-s.v],
+          backgroundColor: [c.m, c.t],
+          borderWidth: 0,
+          borderRadius: 5,
+        }]
+      },
+      options: {
+        responsive: false, cutout: '74%',
+        plugins: { legend:{display:false}, tooltip:{enabled:false} },
+        animation: { duration:1000, easing:'easeOutQuart', delay: i*70 }
+      }
+    });
+  }, 0);
+});
+
+// Status table
+const st = document.getElementById('st');
+dados.forEach(s => {
+  const c = cor(s.v);
+  const r = document.createElement('div');
+  r.className = 'sr';
+  r.innerHTML = `
+    <div class="sdot" style="background:${c.m}"></div>
+    <div class="sname">${s.n}</div>
+    <div class="str"><div class="sf" style="width:${s.v}%;background:${c.m}"></div></div>
+    <div class="spct" style="color:${c.x}">${s.v.toFixed(2)}%</div>
+    <div class="scnt">${s.o}/${s.l}</div>`;
+  st.appendChild(r);
+});
+
+// Histórico
+const ml = ['abr/25','mai/25','jun/25','jul/25','ago/25','set/25','out/25','nov/25','dez/25','jan/26','fev/26','mar/26','abr/26','hoje'];
+const tx = [65.6,67.3,67.0,67.2,62.0,62.5,63.1,61.0,58.1,63.7,65.6,62.1,65.0,90.97];
+new Chart(document.getElementById('ch'), {
+  type: 'line',
+  data: {
+    labels: ml,
+    datasets: [
+      {
+        data: tx,
+        borderColor: tx.map((_,i) => i===tx.length-1 ? '#c0392b' : '#1e40af'),
+        backgroundColor: 'rgba(30,64,175,0.04)',
+        fill: true, tension: 0.4,
+        pointRadius: tx.map((_,i) => i===tx.length-1 ? 6 : 3),
+        pointBackgroundColor: tx.map((_,i) => i===tx.length-1 ? '#c0392b' : '#1e40af'),
+        borderWidth: 1.5,
+        segment: { borderColor: ctx => ctx.p1DataIndex===tx.length-1 ? '#c0392b' : '#1e40af' }
+      },
+      { data:Array(14).fill(64.3), borderColor:'#ccc9c0', borderDash:[4,4], borderWidth:1, pointRadius:0, fill:false }
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins: { legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+ctx.raw+'%'}} },
+    scales: {
+      x: { ticks:{color:'#a8a49c',font:{size:9},autoSkip:false,maxRotation:45}, grid:{color:'#efeee9'} },
+      y: { ticks:{color:'#a8a49c',font:{size:10},callback:v=>v+'%'}, grid:{color:'#efeee9'}, min:50, max:100 }
+    }
+  }
+});
+
+// Convênio
+new Chart(document.getElementById('cc'), {
+  type: 'doughnut',
+  data: {
+    labels: ['SUS','Outros'],
+    datasets: [{ data:[73,27], backgroundColor:['#1e40af','#9ca3af'], borderWidth:0, borderRadius:5 }]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false, cutout:'62%',
+    plugins: { legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+ctx.raw+'%'}} }
+  }
+});
+</script>
+</body>
+</html>
